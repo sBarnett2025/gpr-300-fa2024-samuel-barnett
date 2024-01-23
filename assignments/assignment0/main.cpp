@@ -7,10 +7,17 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <ew/shader.h>
+#include <ew/model.h>
+#include <ew/camera.h>
+#include <ew/transform.h>
+#include <ew/cameraController.h>
+#include <ew/texture.h>
 
+void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
-void drawUI();
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
 
 //Global state
 int screenWidth = 1080;
@@ -22,6 +29,28 @@ int main() {
 	GLFWwindow* window = initWindow("Assignment 0", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
+	// Shader setup
+	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	// Model setup
+	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
+	ew::Transform monkeyTransform;
+	// Texture setup
+	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
+
+	// Camera setup
+	ew::Camera camera;
+	camera.position = glm::vec3(0.0f, 0.0f, 5.0f);
+	camera.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
+	camera.aspectRatio = (float)screenWidth / screenHeight;
+	camera.fov = 60.0f; //Vertical field of view, in degrees
+	ew::CameraController cameraController;
+
+	// OpenGL variables
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK); //Back face culling
+	glEnable(GL_DEPTH_TEST); //Depth testing
+
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
@@ -29,24 +58,52 @@ int main() {
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
 
+		cameraController.move(window, &camera, deltaTime);
+
 		//RENDER
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		drawUI();
+		glBindTextureUnit(0, brickTexture);
+
+		shader.use();
+		shader.setInt("_MainTex", 0);
+		shader.setVec3("_EyePos", camera.position);
+
+		//Rotate model around Y axis
+		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
+		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
+		shader.setMat4("_Model", monkeyTransform.modelMatrix());
+
+		//shader.setMat4("_Model", glm::mat4(1.0f));
+		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+		monkeyModel.draw(); //Draws monkey model using current shader
+
+		drawUI(&camera, &cameraController);
 
 		glfwSwapBuffers(window);
 	}
 	printf("Shutting down...");
 }
 
-void drawUI() {
+void resetCamera(ew::Camera* camera, ew::CameraController* controller)
+{
+	camera->position = glm::vec3(0, 0, 5.0f);
+	camera->target = glm::vec3(0);
+	controller->yaw = controller->pitch = 0;
+}
+
+
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
 
 	ImGui::Begin("Settings");
-	ImGui::Text("Add Controls Here!");
+	if (ImGui::Button("Reset Camera"))
+	{
+		resetCamera(camera, cameraController);
+	}
 	ImGui::End();
 
 	ImGui::Render();
