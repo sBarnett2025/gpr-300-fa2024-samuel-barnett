@@ -14,6 +14,15 @@
 #include <ew/cameraController.h>
 #include <ew/texture.h>
 
+
+// Material setup
+struct Material {
+	float Ka = 1.0;
+	float Kd = 0.5;
+	float Ks = 0.5;
+	float Shininess = 128;
+}material;
+
 void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -32,10 +41,11 @@ int main() {
 	// Shader setup
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	// Model setup
-	ew::Model monkeyModel = ew::Model("assets/suzanne.obj");
+	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 	// Texture setup
-	GLuint brickTexture = ew::loadTexture("assets/brick_color.jpg");
+	GLuint monkeyTexture = ew::loadTexture("assets/Foil/NormalGL.jpg");
+	//GLuint monkeyNormal = ew::loadTexture("assets/Foil/NormalGL.jpg");
 
 	// Camera setup
 	ew::Camera camera;
@@ -44,6 +54,9 @@ int main() {
 	camera.aspectRatio = (float)screenWidth / screenHeight;
 	camera.fov = 60.0f; //Vertical field of view, in degrees
 	ew::CameraController cameraController;
+
+	
+
 
 	// OpenGL variables
 	glEnable(GL_CULL_FACE);
@@ -64,11 +77,19 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glBindTextureUnit(0, brickTexture);
+		glBindTextureUnit(0, monkeyTexture);
+		//glBindTextureUnit(1, monkeyNormal);
 
 		shader.use();
 		shader.setInt("_MainTex", 0);
 		shader.setVec3("_EyePos", camera.position);
+
+		// material values
+		shader.setFloat("_Material.Ka", material.Ka);
+		shader.setFloat("_Material.Kd", material.Kd);
+		shader.setFloat("_Material.Ks", material.Ks);
+		shader.setFloat("_Material.Shininess", material.Shininess);
+
 
 		//Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
@@ -80,6 +101,10 @@ int main() {
 		monkeyModel.draw(); //Draws monkey model using current shader
 
 		drawUI(&camera, &cameraController);
+
+		
+
+
 
 		glfwSwapBuffers(window);
 	}
@@ -104,7 +129,18 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	{
 		resetCamera(camera, cameraController);
 	}
+
+	if (ImGui::CollapsingHeader("Material"))
+	{
+		ImGui::SliderFloat("AmbientK", &material.Ka, 0.0f, 1.0f);
+		ImGui::SliderFloat("DiffuseK", &material.Kd, 0.0f, 1.0f);
+		ImGui::SliderFloat("SpecularK", &material.Ks, 0.0f, 1.0f);
+		ImGui::SliderFloat("Shininess", &material.Shininess, 0.0f, 1.0f);
+
+	}
+
 	ImGui::End();
+
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
