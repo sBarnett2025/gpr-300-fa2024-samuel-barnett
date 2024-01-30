@@ -9,7 +9,6 @@ in Surface
 }fs_in;
 
 uniform sampler2D _MainTex;
-uniform sampler2D _NormalTex;
 
 uniform vec3 _EyePos;
 uniform vec3 _LightDirection = vec3(0.0,-1.0,0.0);
@@ -26,13 +25,8 @@ uniform Material _Material;
 
 void main()
 {
-	// normals
-	vec3 normal = texture(_NormalTex, fs_in.TexCoord).rgb;
-	normal = normal * 1.0 - 1.0;
-	normal = normalize(fs_in.TBN * normal);
-
-
-
+	// normal
+	vec3 normal = normalize(fs_in.WorldNormal);
 
 	// lighting
 	// light pointing down

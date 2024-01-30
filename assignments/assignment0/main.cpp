@@ -44,7 +44,7 @@ int main() {
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 	// Texture setup
-	GLuint monkeyTexture = ew::loadTexture("assets/Foil/NormalGL.jpg");
+	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
 	//GLuint monkeyNormal = ew::loadTexture("assets/Foil/NormalGL.jpg");
 
 	// Camera setup
