@@ -5,7 +5,7 @@ in Surface
 	vec3 WorldPos;
 	vec3 WorldNormal;
 	vec2 TexCoord;
-	mat3 TBN;
+	//mat3 TBN;
 }fs_in;
 
 uniform sampler2D _MainTex;
