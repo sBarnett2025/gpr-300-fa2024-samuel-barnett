@@ -12,7 +12,6 @@ out Surface
 	vec3 WorldPos;
 	vec3 WorldNormal;
 	vec2 TexCoord;
-	//mat3 TBN;
 }vs_out;
 
 void main()
@@ -23,14 +22,5 @@ void main()
 	vs_out.TexCoord = vTextCoord;
 	//Transform vertex position to homogeneous clip space
 	gl_Position = _ViewProjection * _Model * vec4(vPos,1.0);
-
-
-
-	//vec3 T = normalize(vec3(_Model * vec4(vTangent, 0.0)));
-	//vec3 B = normalize(vec3(_Model * vec4(vBitangent, 0.0)));
-	//vec3 N = normalize(vec3(_Model * vec4(vNormal, 0.0)));
-	//vs_out.TBN = mat3(T, B, N);
-
-
 
 }

@@ -7,12 +7,15 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <samuelbarnett/framebuffer.h>
 #include <ew/shader.h>
 #include <ew/model.h>
 #include <ew/camera.h>
 #include <ew/transform.h>
 #include <ew/cameraController.h>
 #include <ew/texture.h>
+#include <ew/mesh.h>
+#include <iostream>
 
 
 // Material setup
@@ -40,12 +43,25 @@ int main() {
 
 	// Shader setup
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
+
+	// Framebuffer setup
+	samuelbarnett::Framebuffer framebuffer = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
+
+	GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+		std::cout << "Framebuffer incomplete: %d " << fboStatus << std::endl;
+	}
+
+	// VAO
+	unsigned int dummyVAO;
+	glCreateVertexArrays(1, &dummyVAO);
+
 	// Model setup
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 	// Texture setup
 	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
-	//GLuint monkeyNormal = ew::loadTexture("assets/Foil/NormalGL.jpg");
 
 	// Camera setup
 	ew::Camera camera;
@@ -54,9 +70,6 @@ int main() {
 	camera.aspectRatio = (float)screenWidth / screenHeight;
 	camera.fov = 60.0f; //Vertical field of view, in degrees
 	ew::CameraController cameraController;
-
-	
-
 
 	// OpenGL variables
 	glEnable(GL_CULL_FACE);
@@ -67,6 +80,8 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
+		//glClear();
+
 		float time = (float)glfwGetTime();
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
@@ -74,12 +89,16 @@ int main() {
 		cameraController.move(window, &camera, deltaTime);
 
 		//RENDER
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.colorBuffer[0]);
+		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glBindTextureUnit(0, monkeyTexture);
-		//glBindTextureUnit(1, monkeyNormal);
 
+		glBindVertexArray(dummyVAO);
+		
+		// lit shader
 		shader.use();
 		shader.setInt("_MainTex", 0);
 		shader.setVec3("_EyePos", camera.position);
@@ -90,7 +109,6 @@ int main() {
 		shader.setFloat("_Material.Ks", material.Ks);
 		shader.setFloat("_Material.Shininess", material.Shininess);
 
-
 		//Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
@@ -100,10 +118,20 @@ int main() {
 		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 		monkeyModel.draw(); //Draws monkey model using current shader
 
-		drawUI(&camera, &cameraController);
+		// sharpen shader
+		sharpen.use();
+		sharpen.setInt("_MainTex", 0);
+		//sharpen.setMat4("_Model", monkeyTransform.modelMatrix());
+		//sharpen.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		
 
+		drawUI(&camera, &cameraController);
+
+		
+		
 
 
 		glfwSwapBuffers(window);
