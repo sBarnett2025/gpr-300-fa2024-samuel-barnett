@@ -12,26 +12,33 @@ namespace samuelbarnett
 		glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
 
 		// color
-		glGenTextures(1, &buffer.colorBuffer[0]);
+		glGenTextures(1, &buffer.colorBuffer);
+		glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer);
+		glTexStorage2D(GL_TEXTURE_2D, 1, colorFormat, buffer.width, buffer.height);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.colorBuffer, 0);
+
 		//for (unsigned int i = 0; i < 8; i++)
 		//{
 			//glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[i]);
 			//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_TEXTURE_2D, buffer.colorBuffer[i], 0);
 		//}
-		//GLenum attachments[8] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		//GLenum attachments[8] = { GL_COLOR_ATTACHMENT0,
+			//GL_COLOR_ATTACHMENT1,
+			//GL_COLOR_ATTACHMENT2,
+			//GL_COLOR_ATTACHMENT3,
+			//GL_COLOR_ATTACHMENT4,
+			//GL_COLOR_ATTACHMENT5,
+			//GL_COLOR_ATTACHMENT6,
+			//GL_COLOR_ATTACHMENT7 };
 		//glDrawBuffers(8, attachments);
-		glBindTexture(GL_TEXTURE_2D, buffer.colorBuffer[0]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.colorBuffer[0], 0);
-		glTexStorage2D(GL_TEXTURE_2D, 1, colorFormat, buffer.width, buffer.height);
 		
 
 		// depth
-		glEnable(GL_DEPTH_TEST);
 
 		glGenTextures(1, &buffer.depthBuffer);
 		glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT16, buffer.width, buffer.height);
-		(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, buffer.depthBuffer, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0);
 
 		//glGenRenderbuffers(1, &buffer.depthBuffer);
 		//glBindRenderbuffer(GL_RENDERBUFFER, buffer.depthBuffer);

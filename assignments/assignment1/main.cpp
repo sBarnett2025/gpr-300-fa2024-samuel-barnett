@@ -26,6 +26,9 @@ struct Material {
 	float Shininess = 128;
 }material;
 
+// Post process variables
+float sharpness = 1.0 / 300.0;
+
 void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -80,8 +83,6 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
-		//glClear();
-
 		float time = (float)glfwGetTime();
 		deltaTime = time - prevFrameTime;
 		prevFrameTime = time;
@@ -89,20 +90,18 @@ int main() {
 		cameraController.move(window, &camera, deltaTime);
 
 		//RENDER
-		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.colorBuffer[0]);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
 
 		glBindTextureUnit(0, monkeyTexture);
 
-		glBindVertexArray(dummyVAO);
-		
-		// lit shader
+		// lit shader-------------------------------------------------
 		shader.use();
 		shader.setInt("_MainTex", 0);
 		shader.setVec3("_EyePos", camera.position);
-
 		// material values
 		shader.setFloat("_Material.Ka", material.Ka);
 		shader.setFloat("_Material.Kd", material.Kd);
@@ -118,21 +117,23 @@ int main() {
 		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 		monkeyModel.draw(); //Draws monkey model using current shader
 
-		// sharpen shader
-		sharpen.use();
-		sharpen.setInt("_MainTex", 0);
-		//sharpen.setMat4("_Model", monkeyTransform.modelMatrix());
-		//sharpen.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 
+		// switch buffers
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// sharpen shader------------------------------------------------
+		sharpen.use();
+		sharpen.setInt("_ColorBuffer", framebuffer.colorBuffer);
+		sharpen.setFloat("_Sharpness", sharpness);
+		glDisable(GL_DEPTH_TEST);
+		glBindTextureUnit(0, framebuffer.colorBuffer);
+
+		glBindVertexArray(dummyVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		
-
 		drawUI(&camera, &cameraController);
-
-		
-		
-
 
 		glfwSwapBuffers(window);
 	}
@@ -145,7 +146,6 @@ void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 	camera->target = glm::vec3(0);
 	controller->yaw = controller->pitch = 0;
 }
-
 
 void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	ImGui_ImplGlfw_NewFrame();
@@ -165,6 +165,11 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		ImGui::SliderFloat("SpecularK", &material.Ks, 0.0f, 1.0f);
 		ImGui::SliderFloat("Shininess", &material.Shininess, 0.0f, 1.0f);
 
+	}
+
+	if (ImGui::CollapsingHeader("Sharpen"))
+	{
+		ImGui::SliderFloat("Sharpness", &sharpness, 0.0f, 1.0f);
 	}
 
 	ImGui::End();
