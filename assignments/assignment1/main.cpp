@@ -125,7 +125,7 @@ int main() {
 
 		// sharpen shader------------------------------------------------
 		sharpen.use();
-		sharpen.setInt("_ColorBuffer", framebuffer.colorBuffer);
+		sharpen.setInt("_ColorBuffer", 0);
 		sharpen.setFloat("_Sharpness", sharpness);
 		glDisable(GL_DEPTH_TEST);
 		glBindTextureUnit(0, framebuffer.colorBuffer);
