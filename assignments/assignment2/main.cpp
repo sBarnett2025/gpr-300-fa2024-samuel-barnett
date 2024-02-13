@@ -43,12 +43,17 @@ int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
 
+
+
+
+
 int main() {
 	GLFWwindow* window = initWindow("Assignment 2", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// Shader setup
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader shadows = ew::Shader("assets/depthOnly.vert","assets/depthOnly.frag");
 	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
 
 	// Framebuffer setup
@@ -69,6 +74,12 @@ int main() {
 	// Model setup
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
+
+	ew::Model groundModel = ew::Model("assets/Cube.fbx");
+	ew::Transform groundTransform;
+	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
+	groundTransform.scale = glm::vec3(5.0f, 0.25f, 5.0f);
+
 	// Texture setup
 	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
 
@@ -82,7 +93,10 @@ int main() {
 
 	// Shadow Camera
 	ew::Camera shadowCam;
-
+	shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
+	shadowCam.aspectRatio = (float)screenWidth / screenHeight;
+	shadowCam.fov = 60.0f; //Vertical field of view, in degrees
+	shadowCam.orthographic = true;
 
 	// OpenGL variables
 	glEnable(GL_CULL_FACE);
@@ -128,6 +142,21 @@ int main() {
 		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 		monkeyModel.draw(); //Draws monkey model using current shader
 
+		shader.setMat4("_Model", groundTransform.modelMatrix());
+		groundModel.draw();
+
+		// shadow shader
+		shadowCam.position = lightDir;
+		shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
+		shadows.use();
+		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
+		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
+		monkeyModel.draw();
+
+		shadows.setMat4("_Model", groundTransform.modelMatrix());
+		groundModel.draw();
+
+		
 
 		// switch buffers
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -193,6 +222,14 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	ImGui::End();
 
+	/*
+	ImGui::Begin("ShadowMap");
+	ImGui::BeginChild("ShadowMap");
+	ImVec2 windowSize = ImGui::GetWindowSize();
+	ImGui::Image((ImTextureID)shadows.shadowFbo, windowSize, ImVec2(0, 1), ImVec2(1, 0));
+	ImGui::EndChild();
+	ImGui::End();
+	*/
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
