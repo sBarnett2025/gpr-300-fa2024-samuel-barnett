@@ -6,6 +6,9 @@ layout(location = 2) in vec2 vTextCoord; //Vertex texture coordinate (UV)
 
 uniform mat4 _Model; //Model->World Matrix
 uniform mat4 _ViewProjection; //Combined View->Projection Matrix
+uniform mat4 _LightViewProj;
+
+out vec4 LightSpacePos;
 
 out Surface
 {
@@ -21,6 +24,7 @@ void main()
 	vs_out.WorldNormal = transpose(inverse(mat3(_Model))) * vNormal;
 	vs_out.TexCoord = vTextCoord;
 	//Transform vertex position to homogeneous clip space
+	LightSpacePos = _LightViewProj * _Model * vec4(vPos, 1);
 	gl_Position = _ViewProjection * _Model * vec4(vPos,1.0);
 
 }

@@ -23,6 +23,19 @@ struct Material{
 };
 uniform Material _Material;
 
+in vec4 LightSpacePos;
+uniform sampler2D _ShadowMap;
+
+float calcShadow(sampler2D shadowMap, vec4 lightSpacePos)
+{
+	vec3 sampleCoord = lightSpacePos.xyz / lightSpacePos.w;
+	sampleCoord = sampleCoord * 0.5 + 0.5;
+	
+	float myDepth = sampleCoord.z;
+	float shadowMapDepth = texture(shadowMap, sampleCoord.xy).r;
+	return step(shadowMapDepth, myDepth);
+}
+
 void main()
 {
 	// normal
@@ -37,8 +50,16 @@ void main()
 	vec3 h = normalize(toLight + toEye);
 	float specularFactor = pow(max(dot(normal, h), 0.0), _Material.Shininess);
 
+	// shadows
+	float shadow = calcShadow(_ShadowMap, LightSpacePos);
+
 	vec3 lightColor = (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * _LightColor;
 	lightColor += _AmbientColor * _Material.Ka;
+	lightColor = (_AmbientColor * _Material.Ka) + (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * (1.0 - shadow);
 	vec3 objectColor = texture(_MainTex, fs_in.TexCoord).rgb;
+
 	FragColor = vec4(objectColor * lightColor, 1.0);
 }
+
+
+
