@@ -116,7 +116,15 @@ int main() {
 
 		cameraController.move(window, &camera, deltaTime);
 
-		//RENDER
+		// RENDER DEPTH MAP
+		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
+		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
+		//glClear(GL_DEPTH_BUFFER_BIT);
+		//glEnable(GL_DEPTH_TEST);
+
+		
+
+		// RENDER SCENE NORMALLY
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
@@ -126,7 +134,7 @@ int main() {
 		glBindTextureUnit(0, monkeyTexture);
 
 		// shadow buffer setup
-		glBindTextureUnit(1, shadowbuffer.shadowBuffer);
+		//glBindTextureUnit(1, shadowbuffer.shadowBuffer);
 
 		// lit shader-------------------------------------------------
 		shader.use();
@@ -140,6 +148,10 @@ int main() {
 		shader.setFloat("_Material.Shininess", material.Shininess);
 
 		// shadow values
+		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
+		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
+		//glClear(GL_DEPTH_BUFFER_BIT);
+
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
 		shader.setMat4("_LightViewProj", lightViewProj);
 		shader.setInt("_ShadowMap", shadowbuffer.shadowBuffer);
@@ -158,7 +170,7 @@ int main() {
 		shadowCam.position = -lightDir;
 		shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
 		shadows.use();
-		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
+		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix()* shadowCam.viewMatrix());
 		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
 		monkeyModel.draw();
 
@@ -167,6 +179,7 @@ int main() {
 
 
 		// switch buffers
+		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -175,6 +188,7 @@ int main() {
 		sharpen.use();
 		sharpen.setInt("_ColorBuffer", 0);
 		sharpen.setFloat("_Sharpness", sharpness);
+		
 		glDisable(GL_DEPTH_TEST);
 		glBindTextureUnit(0, framebuffer.colorBuffer);
 
