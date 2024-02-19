@@ -33,7 +33,10 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpacePos)
 	
 	float myDepth = sampleCoord.z;
 	float shadowMapDepth = texture(shadowMap, sampleCoord.xy).r;
-	return step(shadowMapDepth, myDepth);
+
+	float shadow = myDepth > shadowMapDepth ? 1.0 : 0.0;
+	return shadow;
+	//return step(shadowMapDepth, myDepth);
 }
 
 void main()
@@ -50,15 +53,18 @@ void main()
 	vec3 h = normalize(toLight + toEye);
 	float specularFactor = pow(max(dot(normal, h), 0.0), _Material.Shininess);
 
+
+	vec3 objectColor = texture(_MainTex, fs_in.TexCoord).rgb;
 	// shadows
 	float shadow = calcShadow(_ShadowMap, LightSpacePos);
 
-	vec3 lightColor = (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * _LightColor;
-	lightColor += _AmbientColor * _Material.Ka;
-	lightColor = (_AmbientColor * _Material.Ka) + (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * (1.0 - shadow);
-	vec3 objectColor = texture(_MainTex, fs_in.TexCoord).rgb;
+	//vec3 lightColor = (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * _LightColor;
+	//lightColor += _AmbientColor * _Material.Ka;
+	//vec3 lightColor = (_AmbientColor * _Material.Ka) + (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * (1.0 - shadow);
+	vec3 lightColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor)) * objectColor;
+	
 
-	FragColor = vec4(objectColor * lightColor, 1.0);
+	FragColor = vec4(lightColor, 1.0);
 }
 
 

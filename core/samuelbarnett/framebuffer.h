@@ -8,7 +8,7 @@ namespace samuelbarnett
 		unsigned int shadowFbo;
 		unsigned int colorBuffer;
 		unsigned int depthBuffer;
-		unsigned int shadowBuffer;
+		unsigned int shadowMap;
 		unsigned int width;
 		unsigned int height;
 	};

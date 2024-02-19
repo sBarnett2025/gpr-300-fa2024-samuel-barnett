@@ -27,10 +27,10 @@ struct Material {
 }material;
 
 // Post process variables
-float sharpness = 1.0 / 300.0;
+float sharpness = 0; //1.0 / 300.0;
 
 // light dir
-glm::vec3 lightDir = glm::vec3(0.0, -3.0, 0.0);
+glm::vec3 lightDir = glm::vec3(-2.0, 2.0, -2.0);
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -42,9 +42,6 @@ int screenWidth = 1080;
 int screenHeight = 720;
 float prevFrameTime;
 float deltaTime;
-
-
-
 
 
 int main() {
@@ -77,8 +74,8 @@ int main() {
 
 	ew::Model groundModel = ew::Model("assets/Cube.fbx");
 	ew::Transform groundTransform;
-	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
-	groundTransform.scale = glm::vec3(5.0f, 0.25f, 5.0f);
+	groundTransform.position = glm::vec3(0.0f, -2.0f, 0.0f);
+	groundTransform.scale = glm::vec3(3.0f, 0.25f, 3.0f);
 
 	// Texture setup
 	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
@@ -93,11 +90,12 @@ int main() {
 
 	// Shadow Camera
 	ew::Camera shadowCam;
+	shadowCam.position = lightDir;
 	shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
 	shadowCam.aspectRatio = (float)screenWidth / screenHeight;
 	shadowCam.orthoHeight = 5.0;
-	shadowCam.nearPlane = 0.01;
-	shadowCam.farPlane = 15;
+	shadowCam.nearPlane = 0.5;
+	shadowCam.farPlane = 20;
 	shadowCam.fov = 60.0f; //Vertical field of view, in degrees
 	shadowCam.orthographic = true;
 
@@ -116,25 +114,17 @@ int main() {
 
 		cameraController.move(window, &camera, deltaTime);
 
-		// RENDER DEPTH MAP
-		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
-		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
-		//glClear(GL_DEPTH_BUFFER_BIT);
-		//glEnable(GL_DEPTH_TEST);
-
 		
 
 		// RENDER SCENE NORMALLY
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 		glEnable(GL_DEPTH_TEST);
 
-		glBindTextureUnit(0, monkeyTexture);
-
-		// shadow buffer setup
-		//glBindTextureUnit(1, shadowbuffer.shadowBuffer);
+		glBindTextureUnit(0, monkeyTexture); 
+		
 
 		// lit shader-------------------------------------------------
 		shader.use();
@@ -147,14 +137,9 @@ int main() {
 		shader.setFloat("_Material.Ks", material.Ks);
 		shader.setFloat("_Material.Shininess", material.Shininess);
 
-		// shadow values
-		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
-		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
-		//glClear(GL_DEPTH_BUFFER_BIT);
-
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
 		shader.setMat4("_LightViewProj", lightViewProj);
-		shader.setInt("_ShadowMap", shadowbuffer.shadowBuffer);
+		shader.setInt("_ShadowMap", shadowbuffer.shadowFbo);
 
 		// Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
@@ -166,11 +151,19 @@ int main() {
 		shader.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
 
+
 		// shadow shader
-		shadowCam.position = -lightDir;
+		// RENDER DEPTH MAP
+		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
+		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
+		//glClear(GL_DEPTH_BUFFER_BIT);
+		//glEnable(GL_DEPTH_TEST);
+		glBindTextureUnit(1, shadowbuffer.shadowMap);
+
+		shadowCam.position = lightDir;
 		shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
 		shadows.use();
-		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix()* shadowCam.viewMatrix());
+		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
 		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
 		monkeyModel.draw();
 

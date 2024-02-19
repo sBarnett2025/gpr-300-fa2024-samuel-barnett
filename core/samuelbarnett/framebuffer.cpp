@@ -35,8 +35,8 @@ namespace samuelbarnett
 
 		glCreateFramebuffers(1, &buffer.shadowFbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, buffer.shadowFbo);
-		glGenTextures(1, &buffer.shadowBuffer);
-		glBindTexture(GL_TEXTURE_2D, buffer.shadowBuffer);
+		glGenTextures(1, &buffer.shadowMap);
+		glBindTexture(GL_TEXTURE_2D, buffer.shadowMap);
 
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT16, buffer.width, buffer.height);
 
