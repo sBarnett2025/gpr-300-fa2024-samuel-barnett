@@ -5,7 +5,7 @@ namespace samuelbarnett
 {
 	Framebuffer createFramebuffer(unsigned int width, unsigned int height, int colorFormat)
 	{
-		/*
+		
 		Framebuffer buffer;
 		buffer.width = width;
 		buffer.height = height;
@@ -28,120 +28,56 @@ namespace samuelbarnett
 
 
 		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+		if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+		{
 			std::cout << "Framebuffer incomplete: %d " << fboStatus << std::endl;
 		}
 		return buffer;
-		*/
-
-		unsigned int fbo;
-		glGenFramebuffers(1, &fbo);
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-
-		unsigned int colTexture;
-		glGenTextures(1, &colTexture);
-		glBindTexture(GL_TEXTURE_2D, colTexture);
-		glTexStorage2D(GL_TEXTURE_2D, 1, colorFormat, width, height);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colTexture, 0);
-
-
-		unsigned int depthTexture;
-		glGenTextures(1, &depthTexture);
-		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT16, width, height);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-
-		Framebuffer fbtoRet;
-		fbtoRet.fbo = fbo;
-		fbtoRet.colorBuffer = colTexture;
-		fbtoRet.depthBuffer = depthTexture;
-		fbtoRet.width = width;
-		fbtoRet.height = height;
-		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
-			printf("Framebuffer incomplete: %d", fboStatus);
-		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-
-		return fbtoRet;
 	}
 
 	Framebuffer createShadowBuffer(unsigned int width, unsigned int height)
 	{
-		/*
 		Framebuffer buffer;
-
-		unsigned int shadowFbo;
-
 		buffer.width = width;
 		buffer.height = height;
 
-		glCreateFramebuffers(1, &buffer.shadowFbo);
-		glBindFramebuffer(GL_FRAMEBUFFER, buffer.shadowFbo);
-		glGenTextures(1, &buffer.depthBuffer);
-		glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
+		unsigned int shadowFbo;
+		unsigned int shadowDepth;
+
+		glGenFramebuffers(1, &shadowFbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
+
+		glGenTextures(1, &shadowDepth);
+		glBindTexture(GL_TEXTURE_2D, shadowDepth);
 
 		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, buffer.width, buffer.height);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0); 
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowDepth, 0);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
 		float borderColor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
-
+		buffer.fbo = shadowFbo;
+		buffer.depthBuffer = shadowDepth;
 
 		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
+		if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+		{
 			std::cout << "Framebuffer incomplete: %d " << fboStatus << std::endl;
 		}
-		return buffer;
-		*/
 
-		unsigned int shadowfbo;
-		glGenFramebuffers(1, &shadowfbo);
-		glBindFramebuffer(GL_FRAMEBUFFER, shadowfbo);
-
-
-		unsigned int depthTexture;
-		glGenTextures(1, &depthTexture);
-		glBindTexture(GL_TEXTURE_2D, depthTexture);
-		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, width, height);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		//Pixels outside of frustum should have max distance (white)
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		float borderColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-		Framebuffer fbtoRet;
-		fbtoRet.fbo = shadowfbo;
-		fbtoRet.depthBuffer = depthTexture;
-		fbtoRet.width = width;
-		fbtoRet.height = height;
-		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
-			printf("Framebuffer incomplete: %d", fboStatus);
-		}
 		glDrawBuffer(GL_NONE);
 		glReadBuffer(GL_NONE);
-		//unbinding
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		return fbtoRet;
-
+		return buffer;
 	}
 }
