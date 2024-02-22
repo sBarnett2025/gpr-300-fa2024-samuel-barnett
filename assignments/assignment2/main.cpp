@@ -15,8 +15,10 @@
 #include <ew/cameraController.h>
 #include <ew/texture.h>
 #include <ew/mesh.h>
+#include <ew/procGen.h>
 #include <iostream>
 
+samuelbarnett::Framebuffer shadowbuffer;
 
 // Material setup
 struct Material {
@@ -30,12 +32,12 @@ struct Material {
 float sharpness = 0; //1.0 / 300.0;
 
 // light dir
-glm::vec3 lightDir = glm::vec3(-2.0, 2.0, -2.0);
+glm::vec3 lightDir = glm::vec3(0.0, -1.0, 0.0);
 
 void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
-void drawUI(ew::Camera* camera, samuelbarnett::Framebuffer shadows, ew::CameraController* cameraController);
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
 
 //Global state
 int screenWidth = 1080;
@@ -56,13 +58,8 @@ int main() {
 	// Framebuffer setup
 	samuelbarnett::Framebuffer framebuffer = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
 
-	GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
-		std::cout << "Framebuffer incomplete: %d " << fboStatus << std::endl;
-	}
-
 	// Shadow buffer setup
-	samuelbarnett::Framebuffer shadowbuffer = samuelbarnett::createShadowBuffer(screenWidth, screenHeight);
+	shadowbuffer = samuelbarnett::createShadowBuffer(screenWidth, screenHeight);
 
 	// VAO
 	unsigned int dummyVAO;
@@ -72,10 +69,11 @@ int main() {
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 
-	ew::Model groundModel = ew::Model("assets/Cube.fbx");
+	//ew::Model groundModel = ew::Model("assets/Cube.fbx");
+	ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
 	ew::Transform groundTransform;
-	groundTransform.position = glm::vec3(0.0f, -2.0f, 0.0f);
-	groundTransform.scale = glm::vec3(3.0f, 0.25f, 3.0f);
+
+	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
 
 	// Texture setup
 	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
@@ -90,21 +88,22 @@ int main() {
 
 	// Shadow Camera
 	ew::Camera shadowCam;
-	shadowCam.position = lightDir;
+	shadowCam.orthographic = true;
+	//shadowCam.position = lightDir;
 	shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
-	shadowCam.aspectRatio = (float)screenWidth / screenHeight;
-	shadowCam.orthoHeight = 5.0;
 	shadowCam.nearPlane = 0.5;
 	shadowCam.farPlane = 20;
-	shadowCam.fov = 60.0f; //Vertical field of view, in degrees
-	shadowCam.orthographic = true;
+	shadowCam.orthoHeight = 5.0;
+	shadowCam.aspectRatio = 1.0;
+	//shadowCam.fov = 60.0f; //Vertical field of view, in degrees
+	
 
 	// OpenGL variables
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK); //Back face culling
 	glEnable(GL_DEPTH_TEST); //Depth testing
 
-
+	//shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
@@ -113,22 +112,37 @@ int main() {
 		prevFrameTime = time;
 
 		cameraController.move(window, &camera, deltaTime);
-
 		
+		// shadow shader
+		// RENDER DEPTH MAP
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.fbo);
+		glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		shadowCam.position = shadowCam.target - lightDir * 5.0f;
+
+		shadows.use();
+		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
+		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
+		monkeyModel.draw();
+
+		shadows.setMat4("_Model", groundTransform.modelMatrix());
+		groundModel.draw();
+
 
 		// RENDER SCENE NORMALLY
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_DEPTH_TEST);
 
 		glBindTextureUnit(0, monkeyTexture); 
-		
+		glBindTextureUnit(1, shadowbuffer.depthBuffer);
 
 		// lit shader-------------------------------------------------
 		shader.use();
-		shader.setInt("_MainTex", 0);
+		//shader.setInt("_MainTex", 0);
 		shader.setVec3("_EyePos", camera.position);
 		shader.setVec3("_LightDirection",lightDir);
 		// material values
@@ -139,7 +153,9 @@ int main() {
 
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
 		shader.setMat4("_LightViewProj", lightViewProj);
-		shader.setInt("_ShadowMap", shadowbuffer.shadowFbo);
+		shader.setInt("_ShadowMap", 1);
+		shader.setFloat("_MinBias", 0.005);
+		shader.setFloat("_MaxBias", 0.015);
 
 		// Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
@@ -152,43 +168,26 @@ int main() {
 		groundModel.draw();
 
 
-		// shadow shader
-		// RENDER DEPTH MAP
-		//glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.shadowFbo);
-		//glViewport(0, 0, shadowbuffer.width, shadowbuffer.height);
-		//glClear(GL_DEPTH_BUFFER_BIT);
-		//glEnable(GL_DEPTH_TEST);
-		glBindTextureUnit(1, shadowbuffer.shadowMap);
-
-		shadowCam.position = lightDir;
-		shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
-		shadows.use();
-		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
-		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
-		monkeyModel.draw();
-
-		shadows.setMat4("_Model", groundTransform.modelMatrix());
-		groundModel.draw();
-
-
 		// switch buffers
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTextureUnit(0, framebuffer.colorBuffer);
 		//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glViewport(0, 0, framebuffer.width, framebuffer.height);
 
 		// sharpen shader------------------------------------------------
 		sharpen.use();
 		sharpen.setInt("_ColorBuffer", 0);
 		sharpen.setFloat("_Sharpness", sharpness);
 		
-		glDisable(GL_DEPTH_TEST);
-		glBindTextureUnit(0, framebuffer.colorBuffer);
+		//glDisable(GL_DEPTH_TEST);
+		
 
 		glBindVertexArray(dummyVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		drawUI(&camera, shadowbuffer, &cameraController);
+		drawUI(&camera, &cameraController);
 
 		glfwSwapBuffers(window);
 	}
@@ -202,7 +201,7 @@ void resetCamera(ew::Camera* camera, ew::CameraController* controller)
 	controller->yaw = controller->pitch = 0;
 }
 
-void drawUI(ew::Camera* camera, samuelbarnett::Framebuffer shadows, ew::CameraController* cameraController) {
+void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
@@ -224,9 +223,9 @@ void drawUI(ew::Camera* camera, samuelbarnett::Framebuffer shadows, ew::CameraCo
 
 	if (ImGui::CollapsingHeader("Light Direction"))
 	{
-		ImGui::SliderFloat("Light X", &lightDir.x, -5.0f, 5.0f);
-		ImGui::SliderFloat("Light Y", &lightDir.y, -5.0f, 5.0f);
-		ImGui::SliderFloat("Light Z", &lightDir.z, -5.0f, 5.0f);
+		ImGui::SliderFloat("Light X", &lightDir.x, -2.0f, 2.0f);
+		ImGui::SliderFloat("Light Y", &lightDir.y, -2.0f, 2.0f);
+		ImGui::SliderFloat("Light Z", &lightDir.z, -2.0f, 2.0f);
 
 	}
 
@@ -240,7 +239,7 @@ void drawUI(ew::Camera* camera, samuelbarnett::Framebuffer shadows, ew::CameraCo
 	ImGui::Begin("ShadowMap");
 	ImGui::BeginChild("ShadowMap");
 	ImVec2 windowSize = ImGui::GetWindowSize();
-	ImGui::Image((ImTextureID)shadows.shadowFbo, windowSize, ImVec2(0, 1), ImVec2(1, 0));
+	ImGui::Image((ImTextureID)shadowbuffer.depthBuffer, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 	ImGui::EndChild();
 	ImGui::End();
 	
