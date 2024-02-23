@@ -80,4 +80,55 @@ namespace samuelbarnett
 
 		return buffer;
 	}
+
+	Gbuffer createGBuffer(unsigned int width, unsigned int height)
+	{
+		Gbuffer buffer;
+		buffer.width = width;
+		buffer.height = height;
+
+
+		glCreateFramebuffers(1, &buffer.fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
+
+
+		int formats[3] =
+		{
+			GL_RGB32F,
+			GL_RGB16F,
+			GL_RGB16F
+		};
+
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			glGenTextures(1, &buffer.colorBuffers[i]);
+			glBindTexture(GL_TEXTURE_2D, buffer.colorBuffers[i]);
+			glTexStorage2D(GL_TEXTURE_2D, 1, formats[i], width, height);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, buffer.colorBuffers[i], 0);
+		}
+
+		const GLenum drawBuffers[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 }; 
+
+		glDrawBuffers(3, drawBuffers);
+
+		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
+		{
+			std::cout << "Framebuffer incomplete: %d " << fboStatus << std::endl;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+		return buffer;
+	}
+
 }

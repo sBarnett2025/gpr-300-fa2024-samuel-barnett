@@ -52,14 +52,18 @@ int main() {
 
 	// Shader setup
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
-	ew::Shader shadows = ew::Shader("assets/depthOnly.vert","assets/depthOnly.frag");
+	ew::Shader shadows = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
+	ew::Shader gShader = ew::Shader("assets/", "");
 
 	// Framebuffer setup
 	samuelbarnett::Framebuffer framebuffer = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
 
 	// Shadow buffer setup
 	shadowbuffer = samuelbarnett::createShadowBuffer(screenWidth, screenHeight);
+
+	// G buffer
+	samuelbarnett::Gbuffer gbuffer = samuelbarnett::createGBuffer(screenWidth, screenHeight);
 
 	// VAO
 	unsigned int dummyVAO;
@@ -69,8 +73,8 @@ int main() {
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 
-	ew::Model groundModel = ew::Model("assets/Cube.fbx");
-	//ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
+	//ew::Model groundModel = ew::Model("assets/Cube.fbx");
+	ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
 	ew::Transform groundTransform;
 
 	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
@@ -112,7 +116,7 @@ int main() {
 		prevFrameTime = time;
 
 		cameraController.move(window, &camera, deltaTime);
-		
+
 		// shadow shader
 		// RENDER DEPTH MAP
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.fbo);
@@ -128,6 +132,13 @@ int main() {
 
 		shadows.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
+
+
+		// g buffer
+		glBindFramebuffer(GL_FRAMEBUFFER, gbuffer.fbo);
+		glViewport(0, 0, gbuffer.width, gbuffer.height);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 		// RENDER SCENE NORMALLY
