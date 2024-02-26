@@ -69,8 +69,8 @@ int main() {
 	ew::Model monkeyModel = ew::Model("assets/suzanne.fbx");
 	ew::Transform monkeyTransform;
 
-	ew::Model groundModel = ew::Model("assets/Cube.fbx");
-	//ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
+	//ew::Model groundModel = ew::Model("assets/Cube.fbx");
+	ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
 	ew::Transform groundTransform;
 
 	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
