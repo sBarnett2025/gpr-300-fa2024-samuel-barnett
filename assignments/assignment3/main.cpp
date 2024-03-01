@@ -19,6 +19,7 @@
 #include <iostream>
 
 samuelbarnett::Framebuffer shadowbuffer;
+samuelbarnett::Gbuffer gbuffer;
 
 // Material setup
 struct Material {
@@ -47,14 +48,14 @@ float deltaTime;
 
 
 int main() {
-	GLFWwindow* window = initWindow("Assignment 2", screenWidth, screenHeight);
+	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// Shader setup
 	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
 	ew::Shader shadows = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
-	ew::Shader gShader = ew::Shader("assets/", "");
+	ew::Shader gShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
 
 	// Framebuffer setup
 	samuelbarnett::Framebuffer framebuffer = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
@@ -63,7 +64,7 @@ int main() {
 	shadowbuffer = samuelbarnett::createShadowBuffer(screenWidth, screenHeight);
 
 	// G buffer
-	samuelbarnett::Gbuffer gbuffer = samuelbarnett::createGBuffer(screenWidth, screenHeight);
+	gbuffer = samuelbarnett::createGBuffer(screenWidth, screenHeight);
 
 	// VAO
 	unsigned int dummyVAO;
@@ -117,6 +118,9 @@ int main() {
 
 		cameraController.move(window, &camera, deltaTime);
 
+		glBindTextureUnit(0, monkeyTexture);
+		glBindTextureUnit(1, shadowbuffer.depthBuffer);
+
 		// shadow shader
 		// RENDER DEPTH MAP
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowbuffer.fbo);
@@ -139,6 +143,14 @@ int main() {
 		glViewport(0, 0, gbuffer.width, gbuffer.height);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		gShader.use();
+		gShader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+		gShader.setMat4("_LightViewProj", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
+		gShader.setMat4("_Model", monkeyTransform.modelMatrix());
+		monkeyModel.draw();
+
+		gShader.setMat4("_Model", groundTransform.modelMatrix());
+		groundModel.draw();
 
 
 		// RENDER SCENE NORMALLY
@@ -148,8 +160,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 		//glEnable(GL_DEPTH_TEST);
 
-		glBindTextureUnit(0, monkeyTexture); 
-		glBindTextureUnit(1, shadowbuffer.depthBuffer);
+		
 
 		// lit shader-------------------------------------------------
 		shader.use();
@@ -252,6 +263,16 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	ImVec2 windowSize = ImGui::GetWindowSize();
 	ImGui::Image((ImTextureID)shadowbuffer.depthBuffer, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 	ImGui::EndChild();
+	ImGui::End();
+
+
+	ImGui::Begin("GBuffers");
+	ImVec2 texSize = ImVec2(gbuffer.width / 4, gbuffer.height / 4);
+	for (size_t i = 0; i < 3; i++)
+	{
+		ImGui::Image((ImTextureID)gbuffer.colorBuffers[i], texSize, ImVec2(0, 1), ImVec2(1, 0));
+	}
+
 	ImGui::End();
 	
 

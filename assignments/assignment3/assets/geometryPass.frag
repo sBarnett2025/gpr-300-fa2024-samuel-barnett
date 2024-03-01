@@ -4,9 +4,10 @@ layout(location = 1) out vec3 gNormal; //Worldspace normal
 layout(location = 2) out vec3 gAlbedo;
 
 in Surface{
-	vec3 WorldPos; 
-	vec2 TexCoord;
+	vec3 WorldPos;
 	vec3 WorldNormal;
+	vec2 TexCoord;
+	
 }fs_in;
 
 uniform sampler2D _MainTex;
