@@ -118,6 +118,12 @@ namespace samuelbarnett
 
 		glDrawBuffers(3, drawBuffers);
 
+
+		glGenTextures(1, &buffer.depthBuffer);
+		glBindTexture(GL_TEXTURE_2D, buffer.depthBuffer);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT16, buffer.width, buffer.height);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer.depthBuffer, 0);
+
 		GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if (fboStatus != GL_FRAMEBUFFER_COMPLETE)
 		{
@@ -127,6 +133,8 @@ namespace samuelbarnett
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+
+		
 
 		return buffer;
 	}

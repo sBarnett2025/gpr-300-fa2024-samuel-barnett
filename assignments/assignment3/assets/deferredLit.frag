@@ -23,8 +23,16 @@ struct Material{
 };
 uniform Material _Material;
 
+struct PointLight
+{
+	vec3 position;
+	float radius;
+	vec4 color;
+};
+#define MAX_POINT_LIGHT 64
+uniform PointLight _PointLights[MAX_POINT_LIGHT];
+
 in vec4 LightSpacePos;
-uniform sampler2D _ShadowMap;
 
 uniform float _MinBias;
 uniform float _MaxBias;
@@ -32,6 +40,31 @@ uniform float _MaxBias;
 uniform layout(binding = 0) sampler2D _gPositions;
 uniform layout(binding = 1) sampler2D _gNormals;
 uniform layout(binding = 2) sampler2D _gAlbedo;
+uniform layout(binding = 3) sampler2D _ShadowMap;
+
+float attenuateLinear(float distance, float radius)
+{
+	return clamp(((radius-distance)/radius),0.0,1.0);
+}
+
+vec3 calcPointLight(PointLight light, vec3 normal)
+{
+	vec3 diff = light.position - fs_in.WorldPos;
+
+	vec3 toLight = normalize(diff);
+
+	float diffuseFactor = max(dot(normal, toLight), 0.0);
+	vec3 toEye = normalize(_EyePos - fs_in.WorldPos);
+	vec3 h = normalize(toLight + toEye);
+	float specularFactor = pow(max(dot(normal, h), 0.0), _Material.Shininess);
+
+	lightColor = (diffuseFactor + specularFactor) * light.color;
+	float d = length(diff);
+	lightColor *= attenuateLinear(d, light.radius);
+
+	return lightColor;
+}
+
 
 float calcShadow(sampler2D shadowMap, vec4 lightSpacePos, float bias)
 {

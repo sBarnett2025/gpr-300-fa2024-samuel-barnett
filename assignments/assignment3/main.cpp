@@ -29,6 +29,17 @@ struct Material {
 	float Shininess = 128;
 }material;
 
+// point light struct
+struct PointLight
+{
+	glm::vec3 pos;
+	float radius;
+	glm::vec4 color;
+};
+const int MAX_POINT_LIGHTS = 64;
+PointLight pointLights[MAX_POINT_LIGHTS];
+
+
 // Post process variables
 float sharpness = 0; //1.0 / 300.0;
 
@@ -41,8 +52,8 @@ GLFWwindow* initWindow(const char* title, int width, int height);
 void drawUI(ew::Camera* camera, ew::CameraController* cameraController);
 
 //Global state
-int screenWidth = 1080;
-int screenHeight = 720;
+int screenWidth = 1920;
+int screenHeight = 1080;
 float prevFrameTime;
 float deltaTime;
 
@@ -52,7 +63,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// Shader setup
-	ew::Shader shader = ew::Shader("assets/lit.vert", "assets/lit.frag");
+	ew::Shader defferedShader = ew::Shader("assets/deferredLit.vert", "assets/deferredLit.frag");
 	ew::Shader shadows = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
 	ew::Shader gShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
@@ -75,10 +86,10 @@ int main() {
 	ew::Transform monkeyTransform;
 
 	//ew::Model groundModel = ew::Model("assets/Cube.fbx");
-	ew::Mesh groundModel = ew::Mesh(ew::createPlane(10, 10, 5));
+	ew::Mesh groundModel = ew::Mesh(ew::createPlane(40, 40, 5));
 	ew::Transform groundTransform;
 
-	groundTransform.position = glm::vec3(0.0f, -3.0f, 0.0f);
+	groundTransform.position = glm::vec3(18.0f, -3.0f, 18.0f);
 
 	// Texture setup
 	GLuint monkeyTexture = ew::loadTexture("assets/brick_color.jpg");
@@ -90,6 +101,7 @@ int main() {
 	camera.aspectRatio = (float)screenWidth / screenHeight;
 	camera.fov = 60.0f; //Vertical field of view, in degrees
 	ew::CameraController cameraController;
+	cameraController.moveSpeed = 10;
 
 	// Shadow Camera
 	ew::Camera shadowCam;
@@ -97,8 +109,8 @@ int main() {
 	//shadowCam.position = lightDir;
 	shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f); //Look at the center of the scene
 	shadowCam.nearPlane = 0.5;
-	shadowCam.farPlane = 20;
-	shadowCam.orthoHeight = 5.0;
+	shadowCam.farPlane = 80;
+	shadowCam.orthoHeight = 50.0;
 	shadowCam.aspectRatio = 1.0;
 	//shadowCam.fov = 60.0f; //Vertical field of view, in degrees
 	
@@ -131,66 +143,89 @@ int main() {
 
 		shadows.use();
 		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
-		shadows.setMat4("_Model", monkeyTransform.modelMatrix());
-		monkeyModel.draw();
+		monkeyTransform.position = glm::vec3(0, 0, 0);
+		for (int z = 0; z < 8; z++)
+		{
+			for (int x = 0; x < 8; x++)
+			{
+				monkeyTransform.position = glm::vec3(x * 5, 0, z * 5);
+				shadows.setMat4("_Model", monkeyTransform.modelMatrix());
+				monkeyModel.draw();
+			}
+		}
 
 		shadows.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
 
 
-		// g buffer
+		// GEOMETRY PASS
 		glBindFramebuffer(GL_FRAMEBUFFER, gbuffer.fbo);
 		glViewport(0, 0, gbuffer.width, gbuffer.height);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+
 		gShader.use();
 		gShader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 		gShader.setMat4("_LightViewProj", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
-		gShader.setMat4("_Model", monkeyTransform.modelMatrix());
-		monkeyModel.draw();
 
 		gShader.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
 
+		monkeyTransform.position = glm::vec3(0, 0, 0);
+		for (int z = 0; z < 8; z++)
+		{
+			for (int x = 0; x < 8; x++)
+			{
+				monkeyTransform.position = glm::vec3(x*5, 0, z*5);
+				gShader.setMat4("_Model", monkeyTransform.modelMatrix());
+				monkeyModel.draw();
+			}
+		}
 
-		// RENDER SCENE NORMALLY
+		// LIGHTING PASS
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
 		glViewport(0, 0, framebuffer.width, framebuffer.height);
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
-		//glEnable(GL_DEPTH_TEST);
 
-		
-
-		// lit shader-------------------------------------------------
-		shader.use();
+		defferedShader.use();
 		//shader.setInt("_MainTex", 0);
-		shader.setVec3("_EyePos", camera.position);
-		shader.setVec3("_LightDirection",lightDir);
+		defferedShader.setVec3("_EyePos", camera.position);
+		defferedShader.setVec3("_LightDirection",lightDir);
 		// material values
-		shader.setFloat("_Material.Ka", material.Ka);
-		shader.setFloat("_Material.Kd", material.Kd);
-		shader.setFloat("_Material.Ks", material.Ks);
-		shader.setFloat("_Material.Shininess", material.Shininess);
+		defferedShader.setFloat("_Material.Ka", material.Ka);
+		defferedShader.setFloat("_Material.Kd", material.Kd);
+		defferedShader.setFloat("_Material.Ks", material.Ks);
+		defferedShader.setFloat("_Material.Shininess", material.Shininess);
 
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
-		shader.setMat4("_LightViewProj", lightViewProj);
-		shader.setInt("_ShadowMap", 1);
-		shader.setFloat("_MinBias", 0.005);
-		shader.setFloat("_MaxBias", 0.015);
+		defferedShader.setMat4("_LightViewProj", lightViewProj);
+		defferedShader.setFloat("_MinBias", 0.005);
+		defferedShader.setFloat("_MaxBias", 0.015);
 
 		// Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
-		shader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
-		shader.setMat4("_Model", monkeyTransform.modelMatrix());
+		defferedShader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+
+
+		glBindTextureUnit(0, gbuffer.colorBuffers[0]);
+		glBindTextureUnit(1, gbuffer.colorBuffers[1]);
+		glBindTextureUnit(2, gbuffer.colorBuffers[2]);
+		glBindTextureUnit(3, shadowbuffer.depthBuffer);
+		
+		glBindVertexArray(dummyVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		/*
+		defferedShader.setMat4("_Model", monkeyTransform.modelMatrix());
 		monkeyModel.draw(); //Draws monkey model using current shader
-
-		shader.setMat4("_Model", groundTransform.modelMatrix());
+		defferedShader.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
+		*/
 
 
-		// switch buffers
+		// SHARPEN
 		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTextureUnit(0, framebuffer.colorBuffer);
@@ -245,9 +280,9 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	if (ImGui::CollapsingHeader("Light Direction"))
 	{
-		ImGui::SliderFloat("Light X", &lightDir.x, -2.0f, 2.0f);
-		ImGui::SliderFloat("Light Y", &lightDir.y, -2.0f, 2.0f);
-		ImGui::SliderFloat("Light Z", &lightDir.z, -2.0f, 2.0f);
+		ImGui::SliderFloat("Light X", &lightDir.x, -1.0f, 1.0f);
+		ImGui::SliderFloat("Light Y", &lightDir.y, -1.0f, 1.0f);
+		ImGui::SliderFloat("Light Z", &lightDir.z, -1.0f, 1.0f);
 
 	}
 
