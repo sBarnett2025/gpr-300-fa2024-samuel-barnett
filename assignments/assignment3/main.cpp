@@ -231,6 +231,7 @@ int main() {
 		defferedShader.setFloat("_Material.Shininess", material.Shininess);
 
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
+		defferedShader.setInt("_ShadowMap", 3);
 		defferedShader.setMat4("_LightViewProj", lightViewProj);
 		defferedShader.setFloat("_MinBias", 0.005);
 		defferedShader.setFloat("_MaxBias", 0.015);
@@ -282,11 +283,10 @@ int main() {
 			sphereMesh.draw();
 		}
 
-		glBindVertexArray(VAO3);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		//glBindVertexArray(VAO3);
+		//glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// SHARPEN
-		
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glBindTextureUnit(0, framebuffer.colorBuffer);
 		//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
