@@ -32,6 +32,8 @@ struct PointLight
 #define MAX_POINT_LIGHT 64
 uniform PointLight _PointLights[MAX_POINT_LIGHT];
 
+//uniform mat4 _LightViewProj;
+//in mat4 model;
 in vec4 LightSpacePos;
 
 uniform float _MinBias;
@@ -109,6 +111,7 @@ vec3 calcDirLight(vec3 normal, vec3 worldPos, vec3 alb)
 
 	float bias = max(_MaxBias * (1.0 - dot(normal,toLight)),_MinBias);
 
+	//vec4 lightSpacePos = _LightViewProj * _Model * worldPos;
 	float shadow = calcShadow(_ShadowMap, LightSpacePos, bias);
 
 

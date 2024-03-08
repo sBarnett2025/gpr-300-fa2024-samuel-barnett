@@ -20,7 +20,6 @@
 
 samuelbarnett::Framebuffer shadowbuffer;
 samuelbarnett::Gbuffer gbuffer;
-samuelbarnett::Framebuffer lightOrbfb;
 
 // Material setup
 struct Material {
@@ -81,9 +80,6 @@ int main() {
 
 	// G buffer
 	gbuffer = samuelbarnett::createGBuffer(screenWidth, screenHeight);
-
-	// light orbs
-	lightOrbfb = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
 
 	// VAO
 	unsigned int dummyVAO;
@@ -269,12 +265,12 @@ int main() {
 		*/
 
 		// LIGHT ORBS PASS
-		//glBindFramebuffer(GL_READ_BUFFER, gbuffer.fbo);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, lightOrbfb.fbo);
-		//glBlitFramebuffer(0,0, screenWidth, screenHeight, 0,0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer.fbo);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.fbo);
+		glBlitFramebuffer(0,0, screenWidth, screenHeight, 0,0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
-		glViewport(0, 0, framebuffer.width, framebuffer.height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glViewport(0, 0, framebuffer.width, framebuffer.height);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// draw all light orbs
 		lightOrbShader.use();
@@ -382,11 +378,6 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	}
 
 	ImGui::End();
-
-	ImGui::Begin("Light Orbs");
-	ImGui::Image((ImTextureID)lightOrbfb.colorBuffer, texSize, ImVec2(0, 1), ImVec2(1, 0));
-	ImGui::End();
-	
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
