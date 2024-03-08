@@ -27,7 +27,7 @@ struct PointLight
 {
 	vec3 position;
 	float radius;
-	vec4 color;
+	vec3 color;
 };
 #define MAX_POINT_LIGHT 64
 uniform PointLight _PointLights[MAX_POINT_LIGHT];
@@ -47,9 +47,16 @@ float attenuateLinear(float distance, float radius)
 	return clamp(((radius-distance)/radius),0.0,1.0);
 }
 
-vec3 calcPointLight(PointLight light, vec3 normal)
+float attenuateExponential(float distance, float radius)
 {
-	vec3 diff = light.position - fs_in.WorldPos;
+	float i = clamp(1.0 - pow(distance/radius,4.0),0.0,1.0);
+	return i * i;
+	
+}
+
+vec3 calcPointLight(PointLight light, vec3 normal, vec3 pos)
+{
+	vec3 diff = light.position - pos;
 
 	vec3 toLight = normalize(diff);
 
@@ -58,7 +65,7 @@ vec3 calcPointLight(PointLight light, vec3 normal)
 	vec3 h = normalize(toLight + toEye);
 	float specularFactor = pow(max(dot(normal, h), 0.0), _Material.Shininess);
 
-	lightColor = (diffuseFactor + specularFactor) * light.color;
+	vec3 lightColor = (diffuseFactor + specularFactor) * light.color;
 	float d = length(diff);
 	lightColor *= attenuateLinear(d, light.radius);
 
@@ -90,9 +97,9 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpacePos, float bias)
 	//return step(shadowMapDepth, myDepth);
 }
 
-vec3 calcLightning(vec3 normal, vec3 worldPos, vec3 alb)
+vec3 calcDirLight(vec3 normal, vec3 worldPos, vec3 alb)
 {
-
+	// light pointing down
 	vec3 toLight = -_LightDirection;
 
 	float diffuseFactor = max(dot(normal, toLight), 0.0);
@@ -118,35 +125,15 @@ void main()
 	vec3 worldPos = texture(_gPositions,UV).xyz;
 	vec3 albedo = texture(_gAlbedo,UV).xyz;
 
+	vec3 totalLight = vec3(0);
+	totalLight += calcDirLight(normal, worldPos, albedo);
 
-	/*
-	// lighting
-	// light pointing down
-	vec3 toLight = -_LightDirection;
-
-	float diffuseFactor = max(dot(normal, toLight), 0.0);
-	vec3 toEye = normalize(_EyePos - fs_in.WorldPos);
-	vec3 h = normalize(toLight + toEye);
-	float specularFactor = pow(max(dot(normal, h), 0.0), _Material.Shininess);
-
-
-	vec3 objectColor = texture(_MainTex, fs_in.TexCoord).rgb;
-	// shadows
-	float bias = max(_MaxBias * (1.0 - dot(normal,toLight)),_MinBias);
-
-	float shadow = calcShadow(_ShadowMap, LightSpacePos, bias);
-
-	//vec3 lightColor = (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * _LightColor;
+	for (int i = 0; i < MAX_POINT_LIGHT; i++)
+	{
+		totalLight += calcPointLight(_PointLights[i], normal, worldPos);
+	}
 	
-	vec3 lightColor = (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor) * _LightColor;
-	lightColor *= (1.0 - shadow);
-	lightColor += _AmbientColor * _Material.Ka;
-	*/
-	vec3 lightColor = calcLightning(normal, worldPos, albedo);
-	//vec3 lightColor = ((_AmbientColor * _Material.Ka) + (1.0 - shadow) * (_Material.Kd * diffuseFactor + _Material.Ks * specularFactor)) * objectColor;
-	
-
-	FragColor = vec4(albedo * lightColor, 1.0);
+	FragColor = vec4(albedo * totalLight, 1.0);
 }
 
 
