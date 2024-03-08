@@ -93,8 +93,8 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpacePos, float bias)
 	}
 	shadow /= 9.0;
 
-	return shadow;
-	//return step(shadowMapDepth, myDepth);
+	//return shadow;
+	return step(shadowMapDepth, myDepth);
 }
 
 vec3 calcDirLight(vec3 normal, vec3 worldPos, vec3 alb)

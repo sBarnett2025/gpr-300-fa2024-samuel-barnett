@@ -20,6 +20,7 @@
 
 samuelbarnett::Framebuffer shadowbuffer;
 samuelbarnett::Gbuffer gbuffer;
+samuelbarnett::Framebuffer lightOrbfb;
 
 // Material setup
 struct Material {
@@ -46,6 +47,9 @@ float sharpness = 0; //1.0 / 300.0;
 // light dir
 glm::vec3 lightDir = glm::vec3(0.0, -1.0, 0.0);
 
+// point light radius
+float lightRadius = 8;
+
 void resetCamera(ew::Camera* camera, ew::CameraController* controller);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 GLFWwindow* initWindow(const char* title, int width, int height);
@@ -63,7 +67,7 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// Shader setup
-	ew::Shader defferedShader = ew::Shader("assets/deferredLit.vert", "assets/deferredLit.frag");
+	ew::Shader deferredShader = ew::Shader("assets/deferredLit.vert", "assets/deferredLit.frag");
 	ew::Shader shadows = ew::Shader("assets/depthOnly.vert", "assets/depthOnly.frag");
 	ew::Shader sharpen = ew::Shader("assets/sharpen.vert", "assets/sharpen.frag");
 	ew::Shader gShader = ew::Shader("assets/lit.vert", "assets/geometryPass.frag");
@@ -77,6 +81,9 @@ int main() {
 
 	// G buffer
 	gbuffer = samuelbarnett::createGBuffer(screenWidth, screenHeight);
+
+	// light orbs
+	lightOrbfb = samuelbarnett::createFramebuffer(screenWidth, screenHeight, GL_RGB16F);
 
 	// VAO
 	unsigned int dummyVAO;
@@ -214,7 +221,7 @@ int main() {
 		glClearColor(0.6f,0.8f,0.92f,1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-		defferedShader.use();
+		deferredShader.use();
 
 		glBindTextureUnit(0, gbuffer.colorBuffers[0]);
 		glBindTextureUnit(1, gbuffer.colorBuffers[1]);
@@ -222,33 +229,34 @@ int main() {
 		glBindTextureUnit(3, shadowbuffer.depthBuffer);
 
 		//shader.setInt("_MainTex", 0);
-		defferedShader.setVec3("_EyePos", camera.position);
-		defferedShader.setVec3("_LightDirection",lightDir);
+		deferredShader.setVec3("_EyePos", camera.position);
+		deferredShader.setVec3("_LightDirection",lightDir);
 		// material values
-		defferedShader.setFloat("_Material.Ka", material.Ka);
-		defferedShader.setFloat("_Material.Kd", material.Kd);
-		defferedShader.setFloat("_Material.Ks", material.Ks);
-		defferedShader.setFloat("_Material.Shininess", material.Shininess);
+		deferredShader.setFloat("_Material.Ka", material.Ka);
+		deferredShader.setFloat("_Material.Kd", material.Kd);
+		deferredShader.setFloat("_Material.Ks", material.Ks);
+		deferredShader.setFloat("_Material.Shininess", material.Shininess);
 
 		glm::mat4 lightViewProj = shadowCam.projectionMatrix() * shadowCam.viewMatrix();
-		defferedShader.setInt("_ShadowMap", 3);
-		defferedShader.setMat4("_LightViewProj", lightViewProj);
-		defferedShader.setFloat("_MinBias", 0.005);
-		defferedShader.setFloat("_MaxBias", 0.015);
+		deferredShader.setInt("_ShadowMap", 3);
+		deferredShader.setMat4("_LightViewProj", lightViewProj);
+		deferredShader.setFloat("_MinBias", 0.005);
+		deferredShader.setFloat("_MaxBias", 0.015);
 
-		// point lights
+		// point lights 
 		for (int i = 0; i < MAX_POINT_LIGHTS; i++)
 		{
 			std::string prefix = "_PointLights[" + std::to_string(i) + "].";
-			defferedShader.setVec3(prefix + "position", pointLights[i].pos);
-			defferedShader.setFloat(prefix + "radius", pointLights[i].radius);
-			defferedShader.setVec3(prefix + "color", pointLights[i].color);
+			deferredShader.setVec3(prefix + "position", pointLights[i].pos);
+			//defferedShader.setFloat(prefix + "radius", pointLights[i].radius);
+			deferredShader.setFloat(prefix + "radius", lightRadius);
+			deferredShader.setVec3(prefix + "color", pointLights[i].color);
 		}
 
 		// Rotate model around Y axis
 		monkeyTransform.rotation = glm::rotate(monkeyTransform.rotation, deltaTime, glm::vec3(0.0, 1.0, 0.0));
 		//transform.modelMatrix() combines translation, rotation, and scale into a 4x4 model matrix
-		defferedShader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
+		deferredShader.setMat4("_ViewProjection", camera.projectionMatrix() * camera.viewMatrix());
 
 		glBindVertexArray(VAO2);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -260,13 +268,13 @@ int main() {
 		groundModel.draw();
 		*/
 
-		// LIGHT ORBS
-		glBindFramebuffer(GL_READ_BUFFER, gbuffer.fbo);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.fbo);
-		glBlitFramebuffer(0,0, screenWidth, screenHeight, 0,0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		// LIGHT ORBS PASS
+		//glBindFramebuffer(GL_READ_BUFFER, gbuffer.fbo);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, lightOrbfb.fbo);
+		//glBlitFramebuffer(0,0, screenWidth, screenHeight, 0,0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
-		//glViewport(0, 0, framebuffer.width, framebuffer.height);
-		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glViewport(0, 0, framebuffer.width, framebuffer.height);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// draw all light orbs
 		lightOrbShader.use();
@@ -346,6 +354,11 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	}
 
+	if (ImGui::CollapsingHeader("Point Light Radius"))
+	{
+		ImGui::SliderFloat("Light Radius", &lightRadius, 0.0f, 20.0f);
+	}
+
 	if (ImGui::CollapsingHeader("Sharpen"))
 	{
 		ImGui::SliderFloat("Sharpness", &sharpness, 0.0f, 1.0f);
@@ -368,6 +381,10 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 		ImGui::Image((ImTextureID)gbuffer.colorBuffers[i], texSize, ImVec2(0, 1), ImVec2(1, 0));
 	}
 
+	ImGui::End();
+
+	ImGui::Begin("Light Orbs");
+	ImGui::Image((ImTextureID)lightOrbfb.colorBuffer, texSize, ImVec2(0, 1), ImVec2(1, 0));
 	ImGui::End();
 	
 
