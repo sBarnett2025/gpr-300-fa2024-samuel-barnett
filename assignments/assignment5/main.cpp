@@ -8,6 +8,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <samuelbarnett/framebuffer.h>
+#include <samuelbarnett/transformHierarchyNode.h>
 #include <ew/shader.h>
 #include <ew/model.h>
 #include <ew/camera.h>
@@ -39,6 +40,7 @@ struct PointLight
 const int MAX_POINT_LIGHTS = 64;
 PointLight pointLights[MAX_POINT_LIGHTS];
 
+samuelbarnett::NodeHierarchy transformHierarchy;
 
 // Post process variables
 float sharpness = 0; //1.0 / 300.0;
@@ -148,7 +150,10 @@ int main() {
 	glCullFace(GL_BACK); //Back face culling
 	glEnable(GL_DEPTH_TEST); //Depth testing
 
-	//shadowCam.target = glm::vec3(0.0f, 0.0f, 0.0f);
+
+	// CONSTRUCT THE SKELTON---------------------------------------
+	transformHierarchy = samuelbarnett::CreateSkeleton();
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
@@ -171,6 +176,7 @@ int main() {
 
 		shadows.use();
 		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
+		/*
 		monkeyTransform.position = glm::vec3(0, 0, 0);
 		for (int z = 0; z < 8; z++)
 		{
@@ -181,6 +187,7 @@ int main() {
 				monkeyModel.draw();
 			}
 		}
+		*/
 
 		shadows.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
@@ -200,6 +207,8 @@ int main() {
 		gShader.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
 
+
+		/*
 		monkeyTransform.position = glm::vec3(0, 0, 0);
 		for (int z = 0; z < 8; z++)
 		{
@@ -210,6 +219,7 @@ int main() {
 				monkeyModel.draw();
 			}
 		}
+		*/
 
 		// LIGHTING PASS
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
@@ -362,14 +372,16 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 
 	ImGui::End();
 	
+	/*
 	ImGui::Begin("ShadowMap");
 	ImGui::BeginChild("ShadowMap");
 	ImVec2 windowSize = ImGui::GetWindowSize();
 	ImGui::Image((ImTextureID)shadowbuffer.depthBuffer, windowSize, ImVec2(0, 1), ImVec2(1, 0));
 	ImGui::EndChild();
 	ImGui::End();
+	*/
 
-
+	/*
 	ImGui::Begin("GBuffers");
 	ImVec2 texSize = ImVec2(gbuffer.width / 4, gbuffer.height / 4);
 	for (size_t i = 0; i < 3; i++)
@@ -378,6 +390,8 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	}
 
 	ImGui::End();
+	*/
+
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
