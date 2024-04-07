@@ -176,18 +176,16 @@ int main() {
 
 		shadows.use();
 		shadows.setMat4("_ViewProjection", shadowCam.projectionMatrix() * shadowCam.viewMatrix());
-		/*
-		monkeyTransform.position = glm::vec3(0, 0, 0);
-		for (int z = 0; z < 8; z++)
+		
+		// change this ------------------------------------------------------------------------------
+		//monkeyTransform.position = glm::vec3(0, 0, 0);
+		samuelbarnett::SolveFK(transformHierarchy);
+		for (int i = 0; i < 8; i++)
 		{
-			for (int x = 0; x < 8; x++)
-			{
-				monkeyTransform.position = glm::vec3(x * 5, 0, z * 5);
-				shadows.setMat4("_Model", monkeyTransform.modelMatrix());
-				monkeyModel.draw();
-			}
+			samuelbarnett::Node node = transformHierarchy.nodes[i];
+			shadows.setMat4("_Model", node.globalTransform);
 		}
-		*/
+		
 
 		shadows.setMat4("_Model", groundTransform.modelMatrix());
 		groundModel.draw();
@@ -208,18 +206,13 @@ int main() {
 		groundModel.draw();
 
 
-		/*
-		monkeyTransform.position = glm::vec3(0, 0, 0);
-		for (int z = 0; z < 8; z++)
+		// change this----------------------------------------------------------------------
+		for (int i = 0; i < 8; i++)
 		{
-			for (int x = 0; x < 8; x++)
-			{
-				monkeyTransform.position = glm::vec3(x*5, 0, z*5);
-				gShader.setMat4("_Model", monkeyTransform.modelMatrix());
-				monkeyModel.draw();
-			}
+			samuelbarnett::Node node = transformHierarchy.nodes[i];
+			gShader.setMat4("_Model", node.globalTransform);
 		}
-		*/
+		
 
 		// LIGHTING PASS
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
