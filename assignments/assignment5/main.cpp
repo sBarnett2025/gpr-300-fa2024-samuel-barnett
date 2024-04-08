@@ -179,11 +179,12 @@ int main() {
 		
 		// change this ------------------------------------------------------------------------------
 		//monkeyTransform.position = glm::vec3(0, 0, 0);
-		samuelbarnett::SolveFK(transformHierarchy);
-		for (int i = 0; i < 8; i++)
+		transformHierarchy.SolveFK();
+		for (int i = 0; i < transformHierarchy.nodeCount; i++)
 		{
 			samuelbarnett::Node node = transformHierarchy.nodes[i];
 			shadows.setMat4("_Model", node.globalTransform);
+			monkeyModel.draw();
 		}
 		
 
@@ -207,10 +208,11 @@ int main() {
 
 
 		// change this----------------------------------------------------------------------
-		for (int i = 0; i < 8; i++)
+		for (int i = 0; i < transformHierarchy.nodeCount; i++)
 		{
 			samuelbarnett::Node node = transformHierarchy.nodes[i];
 			gShader.setMat4("_Model", node.globalTransform);
+			monkeyModel.draw();
 		}
 		
 
@@ -361,6 +363,18 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	if (ImGui::CollapsingHeader("Sharpen"))
 	{
 		ImGui::SliderFloat("Sharpness", &sharpness, 0.0f, 1.0f);
+	}
+
+	if (ImGui::CollapsingHeader("TransformHierarchy"))
+	{
+		for (int i = 0; i < transformHierarchy.nodeCount; i++)
+		{
+			if (ImGui::Button("positionnnnnnn" + i))
+			{
+				//std::cout << transformHierarchy.nodes[i].localTransform << std::endl;
+			}
+		}
+
 	}
 
 	ImGui::End();
