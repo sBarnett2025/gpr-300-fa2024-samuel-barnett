@@ -163,6 +163,21 @@ int main() {
 
 		cameraController.move(window, &camera, deltaTime);
 
+		// UPDATE SKELETON
+		transformHierarchy.nodes[0].localTransform.position += glm::vec3(0.5 * deltaTime, 0, 0); // torso
+		transformHierarchy.nodes[0].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(25.f * sin(time)), glm::vec3(0.f, 0.f, 1.f))); // torso again
+
+		transformHierarchy.nodes[1].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(75.f * time), glm::vec3(0.f, 1.f, 0.f))); // head
+
+		transformHierarchy.nodes[2].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(75.f * time), glm::vec3(1.f, 0.f, 0.f))); // r shoulder
+		transformHierarchy.nodes[3].localTransform.scale = glm::vec3(abs(sin(time)), abs(sin(time)), abs(sin(time))); // r elbow
+		transformHierarchy.nodes[4].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(75.f * time), glm::vec3(0.f, 1.f, 0.f))); // r wrist
+
+		transformHierarchy.nodes[5].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(-75.f * time), glm::vec3(1.f, 0.f, 0.f))); // l shoulder
+		transformHierarchy.nodes[6].localTransform.scale = glm::vec3(abs(sin(time)), abs(sin(time)), abs(sin(time))); // l elbow
+		transformHierarchy.nodes[7].localTransform.rotation = glm::mat4_cast(glm::angleAxis(glm::radians(75.f * time), glm::vec3(0.f, 1.f, 0.f))); // l wrist
+
+
 		glBindTextureUnit(0, monkeyTexture);
 		glBindTextureUnit(1, shadowbuffer.depthBuffer);
 
@@ -363,18 +378,6 @@ void drawUI(ew::Camera* camera, ew::CameraController* cameraController) {
 	if (ImGui::CollapsingHeader("Sharpen"))
 	{
 		ImGui::SliderFloat("Sharpness", &sharpness, 0.0f, 1.0f);
-	}
-
-	if (ImGui::CollapsingHeader("TransformHierarchy"))
-	{
-		for (int i = 0; i < transformHierarchy.nodeCount; i++)
-		{
-			if (ImGui::Button("positionnnnnnn" + i))
-			{
-				//std::cout << transformHierarchy.nodes[i].localTransform << std::endl;
-			}
-		}
-
 	}
 
 	ImGui::End();

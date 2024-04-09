@@ -33,7 +33,7 @@ namespace samuelbarnett
 		// RIGHT SHOULDER
 		Node rShoulder;
 		rShoulder.localTransform.position = glm::vec3(-2.0, 0.0, 0.0);
-		rShoulder.localTransform.rotation = glm::quat(1, 0, 1, 0);
+		rShoulder.localTransform.rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0.f, 1.f, 0.f));
 		rShoulder.localTransform.scale = glm::vec3(0.75, 0.75, 0.75);
 
 		rShoulder.parentIndex = BoneNames::TORSO;
@@ -41,16 +41,16 @@ namespace samuelbarnett
 
 		//  RIGHT ELBOW
 		Node rElbow;
-		rElbow.localTransform.position = glm::vec3(0.0, -1.0, 0.0);
+		rElbow.localTransform.position = glm::vec3(0.0, -2.0, 0.0);
 		//rElbow.localTransform.rotation = glm::quat(1.0, 1.0, 1.0, 1.0);
-		//rElbow.localTransform.scale = glm::vec3(1.0, 1.0, 1.0);
+		rElbow.localTransform.scale = glm::vec3(0.75, 0.75, 0.75);
 
 		rElbow.parentIndex = BoneNames::R_SHOULDER;
 		hierarchy.nodes[BoneNames::R_ELBOW] = rElbow;
 
 		// RIGHT WRIST
 		Node rWrist;
-		rWrist.localTransform.position = glm::vec3(0.0, -1.0, 0.0);
+		rWrist.localTransform.position = glm::vec3(0.0, -2.0, 0.0);
 		//rWrist.localTransform.rotation = glm::quat(1.0, 1.0, 1.0, 1.0);
 		//rWrist.localTransform.scale = glm::vec3(1.0, 1.0, 1.0);
 
@@ -60,7 +60,7 @@ namespace samuelbarnett
 		// LEFT SHOULDER
 		Node lShoulder;
 		lShoulder.localTransform.position = glm::vec3(2.0, 0.0, 0.0);
-		//lShoulder.localTransform.rotation = glm::quat(1.0, 1.0, 1.0, 1.0);
+		lShoulder.localTransform.rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
 		lShoulder.localTransform.scale = glm::vec3(0.75, 0.75, 0.75);
 
 		lShoulder.parentIndex = BoneNames::TORSO;
@@ -68,16 +68,16 @@ namespace samuelbarnett
 
 		// LEFT ELBOW
 		Node lElbow;
-		lElbow.localTransform.position = glm::vec3(0.0, -1.0, 0.0);
+		lElbow.localTransform.position = glm::vec3(0.0, -2.0, 0.0);
 		//lElbow.localTransform.rotation = glm::quat(1.0, 1.0, 1.0, 1.0);
-		//lElbow.localTransform.scale = glm::vec3(1.0, 1.0, 1.0);
+		lElbow.localTransform.scale = glm::vec3(0.75, 0.75, 0.75);
 
 		lElbow.parentIndex = BoneNames::L_SHOULDER;
 		hierarchy.nodes[BoneNames::L_ELBOW] = lElbow;
 
 		// LEFT WRIST
 		Node lWrist;
-		lWrist.localTransform.position = glm::vec3(0.0, -1.0, 0.0);
+		lWrist.localTransform.position = glm::vec3(0.0, -2.0, 0.0);
 		//lWrist.localTransform.rotation = glm::quat(1.0, 1.0, 1.0, 1.0);
 		//lWrist.localTransform.scale = glm::vec3(1.0, 1.0, 1.0);
 
