@@ -64,7 +64,7 @@ float deltaTime;
 
 
 int main() {
-	GLFWwindow* window = initWindow("Assignment 3", screenWidth, screenHeight);
+	GLFWwindow* window = initWindow("Assignment 5", screenWidth, screenHeight);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// Shader setup
